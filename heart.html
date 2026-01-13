@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Romantic Heart</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+const PINK = "#ff5fa2";
+const particles = [];
+
+ctx.strokeStyle = PINK;
+ctx.lineWidth = 3;
+ctx.shadowColor = PINK;
+ctx.shadowBlur = 20;
+
+function heartPoint(t) {
+  return {
+    x: 16 * Math.pow(Math.sin(t), 3),
+    y: -(13 * Math.cos(t)
+        - 5 * Math.cos(2 * t)
+        - 2 * Math.cos(3 * t)
+        - Math.cos(4 * t))
+  };
+}
+
+// Precompute heart
+const heart = [];
+for (let t = 0; t <= Math.PI * 2; t += 0.02) {
+  heart.push(heartPoint(t));
+}
+
+let drawIndex = 0;
+let drawingHeart = true;
+let drawingText = false;
+let textProgress = 0;
+
+function spawnParticles(x, y) {
+  if (Math.random() > 0.3) return;
+  particles.push({
+    x,
+    y,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: -Math.random() * 0.6 - 0.1,
+    life: 1
+  });
+}
+
+function drawParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.01;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255, 95, 162, ${p.life})`;
+    ctx.shadowBlur = 10;
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawHeartPartial(count) {
+  const scale = Math.min(canvas.width, canvas.height) / 25;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  ctx.beginPath();
+  for (let i = 0; i < Math.min(count, heart.length); i++) {
+    const p = heart[i];
+    const x = cx + p.x * scale;
+    const y = cy + p.y * scale;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    spawnParticles(x, y);
+  }
+  ctx.stroke();
+}
+
+function drawHeartFull() {
+  drawHeartPartial(heart.length);
+}
+
+function drawText(progress) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2 + 10;
+
+  ctx.save();
+  ctx.font = "52px Pacifico";
+  ctx.lineWidth = 2.5;
+  ctx.shadowBlur = 12;
+
+  const text = "I love you";
+  const metrics = ctx.measureText(text);
+  const textWidth = metrics.width;
+
+  ctx.beginPath();
+  ctx.rect(
+    cx - textWidth / 2,
+    cy - 50,
+    textWidth * progress,
+    80
+  );
+  ctx.clip();
+
+  ctx.strokeText(text, cx - textWidth / 2, cy);
+  ctx.restore();
+}
+
+function animate() {
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (drawingHeart) {
+    drawIndex += 2;
+    drawHeartPartial(drawIndex);
+
+    if (drawIndex >= heart.length) {
+      drawingHeart = false;
+      drawingText = true;
+    }
+  } else {
+    drawHeartFull();
+  }
+
+  if (drawingText) {
+    textProgress += 0.01;
+    drawText(textProgress);
+
+    if (textProgress >= 1) {
+      drawingText = false;
+      textProgress = 1;
+    }
+  } else if (textProgress === 1) {
+    drawText(1);
+  }
+
+  drawParticles();
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+
+</body>
+</html>
